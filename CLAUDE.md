@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-"Hände weg" is a single self-contained web page (`haende-weg.html`) that watches the webcam and alerts the user when their fingers touch their face. Everything runs client-side in the browser; no images are stored or sent anywhere — keep it that way.
+"Hände weg" is a single self-contained web page (`public/index.html`) that watches the webcam and alerts the user when their fingers touch their face. Everything runs client-side in the browser; no images are stored or sent anywhere — keep it that way.
 
 There is no build step, package manager, linter, or test suite. HTML, CSS, and an inline `<script type="module">` all live in the one file. The only external dependencies are loaded at runtime:
 - `@mediapipe/tasks-vision@0.10.21` (JS bundle + WASM) from jsDelivr
@@ -16,10 +16,14 @@ There is no build step, package manager, linter, or test suite. HTML, CSS, and a
 Camera access requires a secure context, so serve the file from localhost rather than opening it directly:
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 -d public
 ```
 
-Then open `http://localhost:8000/haende-weg.html` and click "Kamera starten". Verification is manual (touch your face, hold a hand in front of it, cover the face, etc.).
+Then open `http://localhost:8000/` and click "Kamera starten". Verification is manual (touch your face, hold a hand in front of it, cover the face, etc.).
+
+## Deployment
+
+Deployed as a Cloudflare Worker with static assets (custom domain `haende.agreon.de`), configured in `wrangler.jsonc`. Only `public/` is uploaded — anything placed outside it (repo docs, `.git`, config) stays private, so put every file the site needs inside `public/`.
 
 ## Conventions
 

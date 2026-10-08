@@ -1,0 +1,7 @@
+{
+  "name": "haende",
+  "compatibility_date": "2026-09-01",
+  // Nur dieser Ordner wird ausgeliefert – Repo-Dateien wie .git, CLAUDE.md oder README.md bleiben privat
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "haende.agreon.de", "custom_domain": true }]
+}
