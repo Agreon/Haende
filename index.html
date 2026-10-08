@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hände weg</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Kamerabild links als Arbeitsfläche, schmale Instrumentenleiste rechts; auf dem Handy untereinander. */
+:root {
+  --bg: #f3f5f4;
+  --panel: #ffffff;
+  --fg: #16201d;
+  --muted: #5d6b67;
+  --line: #d9e0dd;
+  --accent: #0e7c6b;
+  --accent-soft: #d6efe9;
+  --warn: #b7791f;
+  --alarm: #d1352b;
+  --alarm-soft: #fbe3e1;
+  --video-bg: #1b2422;
+  --f-display: "Manrope", system-ui, -apple-system, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111715; --panel: #18201e; --fg: #e5ece9; --muted: #92a29d; --line: #2a3532;
+    --accent: #3cc2a9; --accent-soft: #163a33; --warn: #e2a64a; --alarm: #ff6b5f; --alarm-soft: #3d1c1a;
+    --video-bg: #0a0e0d; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.5 var(--f-display);
+  padding: 20px 16px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.sub { color: var(--muted); margin: 0; font-size: 14px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.stage {
+  position: relative; background: var(--video-bg); border-radius: 14px; overflow: hidden;
+  aspect-ratio: 4 / 3; max-width: 100%;
+  outline: 0 solid var(--alarm); transition: outline-width .15s;
+}
+.stage.alarm { outline-width: 6px; outline-offset: -6px; }
+.stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.stage video.dim { filter: blur(18px) brightness(.5); }
+.flash { position: absolute; inset: 0; background: var(--alarm); opacity: 0; pointer-events: none; transition: opacity .5s; }
+.flash.on { opacity: .35; transition: none; }
+.overlay-msg {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 24px; text-align: center; color: #e5ece9;
+}
+.overlay-msg p { margin: 0; max-width: 40ch; color: #b9c6c2; }
+.pill {
+  position: absolute; left: 12px; top: 12px; padding: 5px 11px; border-radius: 999px;
+  font: 500 12px/1.4 var(--f-mono); letter-spacing: .04em; text-transform: uppercase;
+  background: rgba(0,0,0,.55); color: #fff; display: flex; align-items: center; gap: 7px;
+}
+.pill i { width: 8px; height: 8px; border-radius: 50%; background: #8a9692; display: inline-block; }
+.pill[data-s="ok"] i { background: #3cc2a9; }
+.pill[data-s="near"] i { background: #e2a64a; }
+.pill[data-s="touch"] i { background: #ff6b5f; }
+.pill[data-s="paused"] i { background: #8a9692; }
+.pill[data-s="drink"] i { background: #7fb6ff; }
+
+aside { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.label { font: 500 11px/1.3 var(--f-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0; }
+.big { font: 500 44px/1 var(--f-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.stat .v { font: 500 20px/1.2 var(--f-mono); font-variant-numeric: tabular-nums; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+button {
+  font: 700 14px/1 var(--f-display); border-radius: 10px; padding: 11px 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:hover { filter: brightness(1.05); }
+select {
+  flex: 1; min-width: 0; font: 500 14px/1 var(--f-display); border-radius: 10px; padding: 10px 12px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--fg);
+}
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl-head { display: flex; justify-content: space-between; font-size: 13px; }
+.ctl-head output { font-family: var(--f-mono); color: var(--muted); }
+.ctl small { color: var(--muted); font-size: 12px; line-height: 1.4; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+ol.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+ol.log li { display: flex; justify-content: space-between; font: 400 13px/1.5 var(--f-mono); font-variant-numeric: tabular-nums; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+ol.log li span:last-child { color: var(--muted); }
+.empty { color: var(--muted); font-size: 13px; margin: 0; }
+.note { color: var(--muted); font-size: 13px; margin: 0; max-width: 75ch; }
+.err { color: var(--alarm); }
+@media (prefers-reduced-motion: reduce) { .flash, .stage { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Hände weg</h1>
+      <p class="sub">Warnt dich, sobald deine Finger dein Gesicht berühren. Alles läuft lokal im Browser.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="flash" id="flash"></div>
+      <div class="pill" id="pill" data-s="idle"><i></i><span id="pillText">Bereit</span></div>
+      <div class="overlay-msg" id="intro">
+        <p>Die Kamera wird nur in diesem Tab ausgewertet. Es werden keine Bilder gespeichert oder verschickt.</p>
+        <button class="primary" id="startBtn">Kamera starten</button>
+        <p id="introStatus"></p>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <p class="label">Berührungen in dieser Sitzung</p>
+        <div class="big" id="count">0</div>
+        <div class="stats">
+          <div class="stat"><p class="label">Seit letzter</p><div class="v" id="since">–</div></div>
+          <div class="stat"><p class="label">Längste Pause</p><div class="v" id="streak">–</div></div>
+        </div>
+        <div class="row">
+          <button id="pauseBtn" disabled>Pausieren</button>
+          <button id="snoozeBtn" disabled title="Zum Essen oder Trinken">2 Min. aussetzen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Einstellungen</p>
+        <div class="ctl">
+          <div class="ctl-head"><label for="dwell">Reaktionszeit</label><output id="dwellOut"></output></div>
+          <input type="range" id="dwell" min="0" max="1000" step="50" value="250">
+          <small>Wie lange ein Finger am Gesicht sein muss, bis es piept.</small>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="margin">Gesichtsbereich</label><output id="marginOut"></output></div>
+          <input type="range" id="margin" min="0" max="30" step="1" value="8">
+          <small>Vergrößert die erkannte Gesichtsfläche, z. B. um Haare und Ohren einzuschließen.</small>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="depth">Tiefenfilter</label><output id="depthOut"></output></div>
+          <input type="range" id="depth" min="1.0" max="3.0" step="0.1" value="1.8">
+          <small>Ignoriert Hände, die deutlich näher an der Kamera sind als dein Gesicht (Hand vor dem Gesicht statt am Gesicht). Kleiner = strenger.</small>
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="sound">Warnton</label></div>
+          <div class="row">
+            <select id="sound">
+              <option value="rauchmelder">Rauchmelder</option>
+              <option value="sirene">Sirene</option>
+              <option value="wecker">Wecker</option>
+              <option value="buzzer">Buzzer</option>
+              <option value="sanft">Sanfter Gong</option>
+              <option value="aus">Aus</option>
+            </select>
+            <button id="testBtn" type="button">Testen</button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="drink" checked> Trinken erlauben</label>
+        <label class="check"><input type="checkbox" id="preview" checked> Kamerabild zeigen</label>
+        <label class="check"><input type="checkbox" id="guides" checked> Erkennung einblenden</label>
+      </div>
+
+      <div class="card">
+        <p class="label">Verlauf</p>
+        <ol class="log" id="log"></ol>
+        <p class="empty" id="logEmpty">Noch keine Berührung erkannt.</p>
+      </div>
+    </aside>
+  </div>
+
+  <p class="note">Tipp: Lass den Tab im Hintergrund offen. Die Überwachung läuft weiter, solange das Browserfenster nicht minimiert ist. Wenn der Alarm fälschlich auslöst, während du die Hand nur vor das Gesicht hältst, stell den Tiefenfilter strenger ein. Trinken aus Becher, Tasse, Glas oder Flasche wird erkannt und nicht gezählt.</p>
+</div>
+
+<script type="module">
+import { FilesetResolver, HandLandmarker, FaceLandmarker, ObjectDetector } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs";
+
+const $ = id => document.getElementById(id);
+const video = $("video"), canvas = $("canvas"), ctx = canvas.getContext("2d");
+const FPS = 12;
+const FINGERTIPS = [4, 8, 12, 16, 20];
+const FACE_MEMORY_MS = 1500;   // Gesicht weiterverwenden, wenn die Hand es verdeckt
+const RELEASE_MS = 600;        // so lange muss die Hand weg sein, bis eine neue Berührung zählt
+const DRINK_HOLD_MS = 1500;    // Nachlauf der Trink-Ausnahme, nachdem die Hand das Gesicht verlassen hat
+const DRINK_CLASSES = ["cup", "bottle", "wine glass"];
+
+let handLm, faceLm, objDet, audioCtx;
+let running = false, pausedUntil = 0, manualPause = false;
+let lastFace = null, touchStart = 0, touching = false, lastClear = 0;
+let drinkUntil = 0, drinkBox = null, drinkSeen = 0, objTick = 0;
+const touches = [];
+const sessionStart = Date.now();
+let longest = 0;
+
+// ---------- Einstellungen ----------
+const S = {};
+function bindRange(id, fmt) {
+  const el = $(id), out = $(id + "Out");
+  const upd = () => { S[id] = parseFloat(el.value); out.textContent = fmt(S[id]); };
+  el.addEventListener("input", upd); upd();
+}
+bindRange("dwell", v => v + " ms");
+bindRange("margin", v => "+" + v + " %");
+bindRange("depth", v => v.toFixed(1) + "×");
+$("preview").addEventListener("change", e => video.classList.toggle("dim", !e.target.checked));
+
+// ---------- Start ----------
+$("startBtn").addEventListener("click", async () => {
+  $("startBtn").disabled = true;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  try {
+    setIntro("Kamera wird geöffnet …");
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false });
+    video.srcObject = stream;
+    await video.play();
+  } catch (e) {
+    setIntro("Kein Kamerazugriff. Erlaube die Kamera in den Browser-Einstellungen und lade die Seite neu.", true);
+    $("startBtn").disabled = false; return;
+  }
+  try {
+    setIntro("Erkennungsmodelle werden geladen (einmalig ca. 22 MB) …");
+    const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
+    const base = { delegate: "GPU" };
+    [handLm, faceLm, objDet] = await Promise.all([
+      HandLandmarker.createFromOptions(files, { baseOptions: { ...base, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" }, runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.4, minHandPresenceConfidence: 0.4, minTrackingConfidence: 0.4 }),
+      FaceLandmarker.createFromOptions(files, { baseOptions: { ...base, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" }, runningMode: "VIDEO", numFaces: 1 }),
+      // Optional: ohne Objekterkennung läuft alles weiter, nur Trinken wird dann nicht erkannt
+      ObjectDetector.createFromOptions(files, { baseOptions: { ...base, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/1/efficientdet_lite2.tflite" }, runningMode: "VIDEO", scoreThreshold: 0.2, maxResults: 5, categoryAllowlist: DRINK_CLASSES })
+        .catch(e => { console.warn("Objekterkennung nicht verfügbar", e); return null; })
+    ]);
+  } catch (e) {
+    console.error(e);
+    setIntro("Die Modelle konnten nicht geladen werden. Prüfe deine Internetverbindung und lade die Seite neu.", true);
+    return;
+  }
+  $("intro").hidden = true;
+  $("pauseBtn").disabled = false; $("snoozeBtn").disabled = false;
+  running = true;
+  startTicker();
+});
+function setIntro(t, err) { const p = $("introStatus"); p.textContent = t; p.className = err ? "err" : ""; }
+
+// Ein Worker-Timer wird in Hintergrund-Tabs weniger stark gedrosselt als requestAnimationFrame.
+function startTicker() {
+  const src = `setInterval(() => postMessage(0), ${Math.round(1000 / FPS)});`;
+  const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  let busy = false;
+  w.onmessage = () => { if (busy) return; busy = true; try { tick(); } finally { busy = false; } };
+}
+
+// ---------- Geometrie ----------
+function convexHull(pts) {
+  const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function scalePoly(poly, f) {
+  const cx = poly.reduce((s, p) => s + p[0], 0) / poly.length, cy = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+  return poly.map(([x, y]) => [cx + (x - cx) * f, cy + (y - cy) * f]);
+}
+function inside([x, y], poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const bbox = pts => { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+// Getränk in einer Hand auf Gesichtshöhe – nicht z. B. der Becher auf dem Tisch neben der Maus
+function findDrink(res, hands, face) {
+  let maxY = Infinity;
+  if (face) { const [, y0, , y1] = bbox(face.hull); maxY = y1 + 0.75 * (y1 - y0); }
+  const d = (res.detections || []).find(({ boundingBox: b }) => b.originY + b.height / 2 < maxY && hands.some(p => {
+    const [x0, y0, x1, y1] = bbox(p), m = 0.25 * Math.max(x1 - x0, y1 - y0);   // Hand umschließt das Gefäß
+    return b.originX < x1 + m && b.originX + b.width > x0 - m && b.originY < y1 + m && b.originY + b.height > y0 - m;
+  }));
+  return d ? d.boundingBox : null;
+}
+
+// ---------- Hauptschleife ----------
+function tick() {
+  if (!running || video.readyState < 2) return;
+  const W = video.videoWidth, H = video.videoHeight;
+  if (canvas.width !== W) { canvas.width = W; canvas.height = H; }
+  const now = performance.now();
+  const face = faceLm.detectForVideo(video, now);
+  const hands = handLm.detectForVideo(video, now);
+  const px = l => [l.x * W, l.y * H];
+  const handPts = (hands.landmarks || []).map(h => h.map(px));
+  const drinkOn = $("drink").checked;
+
+  if (face.faceLandmarks?.length) {
+    const lm = face.faceLandmarks[0].map(px);
+    lastFace = { hull: convexHull(lm), eye: dist(lm[33], lm[263]), t: now, live: true };
+  } else if (lastFace) {
+    lastFace.live = false;
+    if (now - lastFace.t > FACE_MEMORY_MS) lastFace = null;
+  }
+
+  const paused = manualPause || Date.now() < pausedUntil;
+  let state = "ok", label = "Überwacht";
+  let contact = false, near = false, atFace = false;   // atFace: Hand am Gesicht, unabhängig vom Tiefenfilter
+  const tipsToDraw = [];
+
+  if (!lastFace) { state = "idle"; label = "Kein Gesicht im Bild"; }
+  else {
+    const zone = scalePoly(lastFace.hull, 1 + S.margin / 100);
+    const nearZone = scalePoly(lastFace.hull, 1.35 + S.margin / 100);
+    handPts.forEach(p => {
+      const ratio = dist(p[0], p[9]) / lastFace.eye;   // Handgröße relativ zum Augenabstand
+      const inFront = ratio > S.depth;
+      FINGERTIPS.forEach(i => {
+        const tip = p[i];
+        const hit = !inFront && inside(tip, zone);
+        const close = !inFront && inside(tip, nearZone);
+        if (hit) contact = true; else if (close) near = true;
+        if (inside(tip, nearZone)) atFace = true;
+        tipsToDraw.push({ tip, hit, close, inFront });
+      });
+    });
+    if (!lastFace.live) label = "Gesicht verdeckt";
+    if (near) { state = "near"; label = "Hand in der Nähe"; }
+    if (contact) { state = "touch"; label = "Berührung"; }
+  }
+  // Trinken: Am Mund verdecken Hand und Gesicht das Gefäß oft so stark, dass es nicht mehr erkannt wird.
+  // Deshalb wird schon beim Anheben gesucht (jeder 2. Frame), und die Ausnahme hält an, solange die Hand am Gesicht bleibt.
+  if (drinkOn && objDet && handPts.length && ++objTick % 2 === 0) {
+    const box = findDrink(objDet.detectForVideo(video, now), handPts, lastFace);
+    if (box) { drinkUntil = now + DRINK_HOLD_MS; drinkBox = box; drinkSeen = now; }
+  }
+  if (now < drinkUntil && handPts.length && (atFace || !lastFace)) drinkUntil = now + DRINK_HOLD_MS;
+  const drinking = drinkOn && now < drinkUntil;
+  if (drinking) { contact = false; if (lastFace) { state = "drink"; label = "Trinken"; } }
+
+  // Entprellen: erst nach S.dwell ms Kontakt zählt es, danach erst wieder nach Loslassen
+  if (contact && !paused) {
+    if (!touchStart) touchStart = now;
+    if (!touching && now - touchStart >= S.dwell) { touching = true; onTouch(); }
+    lastClear = 0;
+  } else {
+    touchStart = 0;
+    if (touching) { if (!lastClear) lastClear = now; if (now - lastClear > RELEASE_MS) { touching = false; lastClear = 0; } }
+  }
+
+  if (paused) { state = "paused"; label = manualPause ? "Pausiert" : "Ausgesetzt bis " + fmtClock(pausedUntil); }
+  setPill(state, label);
+  draw(lastFace, tipsToDraw, drinking, now - drinkSeen < 400 ? drinkBox : null);
+}
+
+function draw(face, tips, drinking, drink) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!$("guides").checked || !face) return;
+  const zone = scalePoly(face.hull, 1 + S.margin / 100);
+  ctx.lineWidth = 2;
+  ctx.setLineDash(face.live ? [] : [6, 6]);
+  ctx.strokeStyle = touching ? "rgba(255,107,95,.95)" : "rgba(60,194,169,.85)";
+  ctx.beginPath(); zone.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.stroke();
+  ctx.setLineDash([]);
+  if (drink) {
+    ctx.strokeStyle = "#7fb6ff"; ctx.setLineDash([6, 6]);
+    ctx.strokeRect(drink.originX, drink.originY, drink.width, drink.height);
+    ctx.setLineDash([]);
+  }
+  tips.forEach(({ tip, hit, close, inFront }) => {
+    ctx.fillStyle = drinking ? "#7fb6ff" : hit ? "#ff6b5f" : close ? "#e2a64a" : inFront ? "rgba(255,255,255,.35)" : "#ffffff";
+    ctx.beginPath(); ctx.arc(tip[0], tip[1], hit ? 7 : 5, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+let pillState = "";
+function setPill(s, t) {
+  if (pillState === s + t) return; pillState = s + t;
+  $("pill").dataset.s = s; $("pillText").textContent = t;
+}
+
+// ---------- Alarm ----------
+let titleTimer;
+function onTouch() {
+  const t = Date.now();
+  const prev = touches.length ? touches[touches.length - 1] : sessionStart;
+  longest = Math.max(longest, t - prev);
+  touches.push(t);
+  $("count").textContent = touches.length;
+  const li = document.createElement("li");
+  li.innerHTML = `<span>${fmtClock(t)}</span><span>nach ${fmtDur(t - prev)}</span>`;
+  $("log").prepend(li); $("logEmpty").hidden = true;
+
+  beep();
+  $("stage").classList.add("alarm"); $("flash").classList.add("on");
+  requestAnimationFrame(() => setTimeout(() => $("flash").classList.remove("on"), 60));
+  setTimeout(() => $("stage").classList.remove("alarm"), 900);
+  clearTimeout(titleTimer);
+  document.title = "● Hände weg!";
+  titleTimer = setTimeout(() => document.title = "Hände weg", 3000);
+}
+// Ein Ton mit kurzer Hüllkurve, damit es nicht knackt
+function tone(out, type, f, t, d, vol = 1) {
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.005);
+  g.gain.setValueAtTime(vol, t + d - 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + d - 0.005);
+  o.connect(g).connect(out);
+  o.start(t); o.stop(t + d);
+  return o;
+}
+const SOUNDS = {
+  // Rechteckwelle, schnell zwischen zwei Tönen im empfindlichsten Hörbereich (2–3 kHz) wechselnd
+  rauchmelder: (out, t) => { for (let i = 0; i < 8; i++) tone(out, "square", i % 2 ? 1900 : 2600, t + i * 0.09, 0.09); },
+  sirene: (out, t) => {
+    const o = tone(out, "sawtooth", 600, t, 1.2);
+    for (let i = 0; i < 3; i++) { o.frequency.linearRampToValueAtTime(1500, t + i * 0.4 + 0.2); o.frequency.linearRampToValueAtTime(600, t + i * 0.4 + 0.4); }
+  },
+  wecker: (out, t) => { for (let b = 0; b < 2; b++) for (let i = 0; i < 4; i++) tone(out, "square", 1000, t + b * 0.5 + i * 0.1, 0.06); },
+  // zwei leicht verstimmte tiefe Töne schweben gegeneinander – wie bei einer falschen Quizantwort
+  buzzer: (out, t) => { tone(out, "sawtooth", 140, t, 0.7, 0.6); tone(out, "square", 147, t, 0.7, 0.5); },
+  sanft: (out, t) => [880, 660].forEach((f, i) => tone(out, "sine", f, t + i * 0.16, 0.16, 0.35)),
+};
+function beep() {
+  const play = SOUNDS[$("sound").value];
+  if (!play) return;
+  audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const out = audioCtx.createGain(); out.gain.value = 0.7; out.connect(audioCtx.destination);
+  play(out, audioCtx.currentTime + 0.02);
+}
+$("sound").addEventListener("change", beep);
+$("testBtn").addEventListener("click", beep);
+
+// ---------- Steuerung ----------
+$("pauseBtn").addEventListener("click", () => {
+  manualPause = !manualPause; pausedUntil = 0;
+  $("pauseBtn").textContent = manualPause ? "Fortsetzen" : "Pausieren";
+});
+$("snoozeBtn").addEventListener("click", () => {
+  manualPause = false; $("pauseBtn").textContent = "Pausieren";
+  pausedUntil = Date.now() + 2 * 60 * 1000;
+});
+
+// ---------- Anzeige ----------
+function fmtClock(t) { return new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+function fmtDur(ms) {
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")} h` : m ? `${m}:${String(r).padStart(2, "0")} min` : `${r} s`;
+}
+setInterval(() => {
+  if (!running) return;
+  const last = touches.length ? touches[touches.length - 1] : sessionStart;
+  $("since").textContent = fmtDur(Date.now() - last);
+  $("streak").textContent = fmtDur(Math.max(longest, Date.now() - last));
+}, 1000);
+</script>
+</body>
+</html>
