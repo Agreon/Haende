@@ -11,6 +11,8 @@ There is no build step, package manager, linter, or test suite. HTML, CSS, and a
 - Hand/face landmarker `.task` models and the EfficientDet-Lite2 object detector from `storage.googleapis.com`
 - Manrope / IBM Plex Mono from Google Fonts
 
+The model servers only allow a 1 h HTTP cache, so `model(url)` stores the model files in Cache Storage (`haende-modelle-v1`) and passes them as `modelAssetBuffer`; it falls back to `modelAssetPath` if the cache is unavailable. A changed model URL just becomes a new cache entry; nothing ever removes old entries, so clean them up if models are swapped.
+
 ## Running
 
 Camera access requires a secure context, so serve the file from localhost rather than opening it directly:
@@ -45,4 +47,8 @@ Each tick:
 
 Settings sliders are bound via `bindRange(id, fmt)` into the shared `S` object (`S.dwell`, `S.margin`, `S.depth`); each slider needs a matching `<output id="{id}Out">`. Video and canvas are mirrored with CSS `scaleX(-1)`, so drawing uses raw (unmirrored) landmark pixel coordinates.
 
-`onTouch()` handles all alarm side effects: counter/log/longest-streak stats, Web Audio beep (the `AudioContext` is created on the start-button click to satisfy autoplay rules), red flash/outline, and a temporary tab-title change.
+## Statistics
+
+Per calendar day, `stats[YYYY-MM-DD] = { n, ms }` (touches and monitored time) is kept in `localStorage` (`haende-statistik-v1`). Monitored time only accrues in `tick()` while a face is tracked and not paused, with gaps capped at 1 s so a throttled/minimized tab doesn't inflate it. The rate is `n` per monitored hour and is hidden below `MIN_RATE_MS`. Only a tab that is actually monitoring (`running`) writes to storage, so an idle second tab can't overwrite the data. `renderStats()` draws the 14-day SVG bar chart; `showDay(i)` drives the text readout on hover/focus.
+
+`onTouch()` handles all alarm side effects: counter/log/longest-streak stats, the daily statistics, Web Audio beep (the `AudioContext` is created on the start-button click to satisfy autoplay rules), red flash/outline, and a temporary tab-title change.

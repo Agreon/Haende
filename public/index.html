@@ -105,6 +105,17 @@ ol.log li span:last-child { color: var(--muted); }
 .empty { color: var(--muted); font-size: 13px; margin: 0; }
 .note { color: var(--muted); font-size: 13px; margin: 0; max-width: 75ch; }
 .err { color: var(--alarm); }
+.card small { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .bar { fill: var(--accent); }
+.chart .band { fill: transparent; }
+.chart .col { outline: none; }
+.chart .col.sel .band { fill: var(--accent-soft); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart text { font: 400 10px var(--f-mono); fill: var(--muted); }
+.chart text.today { fill: var(--fg); font-weight: 500; }
+.readout { font: 400 13px/1.4 var(--f-mono); font-variant-numeric: tabular-nums; margin: 0; min-height: 2.8em; }
+.linkbtn { align-self: flex-start; background: none; border: 0; padding: 0; color: var(--muted); font: 500 12px/1.4 var(--f-display); text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) { .flash, .stage { transition: none; } }
 </style>
 </head>
@@ -142,6 +153,18 @@ ol.log li span:last-child { color: var(--muted); }
           <button id="pauseBtn" disabled>Pausieren</button>
           <button id="snoozeBtn" disabled title="Zum Essen oder Trinken">2 Min. aussetzen</button>
         </div>
+      </div>
+
+      <div class="card">
+        <p class="label">Berührungen pro Stunde</p>
+        <div class="stats">
+          <div class="stat"><p class="label">Heute</p><div class="v" id="rateToday">–</div></div>
+          <div class="stat"><p class="label">Ø 7 Tage davor</p><div class="v" id="rateWeek">–</div></div>
+        </div>
+        <svg class="chart" id="chart" viewBox="0 0 288 130" role="img" aria-label="Berührungen pro Stunde in den letzten 14 Tagen"></svg>
+        <p class="readout" id="readout"></p>
+        <small>Gezählt wird nur die Zeit, in der dein Gesicht überwacht wird (ohne Pausen). Die Daten bleiben in diesem Browser.</small>
+        <button class="linkbtn" id="resetStats" type="button">Statistik löschen</button>
       </div>
 
       <div class="card">
@@ -206,7 +229,7 @@ const DRINK_CLASSES = ["cup", "bottle", "wine glass"];
 let handLm, faceLm, objDet, audioCtx;
 let running = false, pausedUntil = 0, manualPause = false;
 let lastFace = null, touchStart = 0, touching = false, lastClear = 0;
-let drinkUntil = 0, drinkBox = null, drinkSeen = 0, objTick = 0;
+let drinkUntil = 0, drinkBox = null, drinkSeen = 0, objTick = 0, lastTickT = 0;
 const touches = [];
 const sessionStart = Date.now();
 let longest = 0;
@@ -237,14 +260,14 @@ $("startBtn").addEventListener("click", async () => {
     $("startBtn").disabled = false; return;
   }
   try {
-    setIntro("Erkennungsmodelle werden geladen (einmalig ca. 22 MB) …");
+    setIntro("Erkennungsmodelle werden geladen (beim ersten Mal ca. 22 MB) …");
     const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
     const base = { delegate: "GPU" };
     [handLm, faceLm, objDet] = await Promise.all([
-      HandLandmarker.createFromOptions(files, { baseOptions: { ...base, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task" }, runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.4, minHandPresenceConfidence: 0.4, minTrackingConfidence: 0.4 }),
-      FaceLandmarker.createFromOptions(files, { baseOptions: { ...base, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" }, runningMode: "VIDEO", numFaces: 1 }),
+      model("https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task").then(m => HandLandmarker.createFromOptions(files, { baseOptions: { ...base, ...m }, runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.4, minHandPresenceConfidence: 0.4, minTrackingConfidence: 0.4 })),
+      model("https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task").then(m => FaceLandmarker.createFromOptions(files, { baseOptions: { ...base, ...m }, runningMode: "VIDEO", numFaces: 1 })),
       // Optional: ohne Objekterkennung läuft alles weiter, nur Trinken wird dann nicht erkannt
-      ObjectDetector.createFromOptions(files, { baseOptions: { ...base, modelAssetPath: "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/1/efficientdet_lite2.tflite" }, runningMode: "VIDEO", scoreThreshold: 0.2, maxResults: 5, categoryAllowlist: DRINK_CLASSES })
+      model("https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/1/efficientdet_lite2.tflite").then(m => ObjectDetector.createFromOptions(files, { baseOptions: { ...base, ...m }, runningMode: "VIDEO", scoreThreshold: 0.2, maxResults: 5, categoryAllowlist: DRINK_CLASSES }))
         .catch(e => { console.warn("Objekterkennung nicht verfügbar", e); return null; })
     ]);
   } catch (e) {
@@ -257,6 +280,23 @@ $("startBtn").addEventListener("click", async () => {
   running = true;
   startTicker();
 });
+// Die Modell-Server erlauben nur 1 h HTTP-Cache, deshalb dauerhaft in der Cache Storage des Browsers ablegen
+const MODEL_CACHE = "haende-modelle-v1";
+async function model(url) {
+  try {
+    const cache = await caches.open(MODEL_CACHE);
+    let res = await cache.match(url);
+    if (!res) {
+      res = await fetch(url);
+      if (!res.ok) throw new Error(res.status + " " + url);
+      await cache.put(url, res.clone());
+    }
+    return { modelAssetBuffer: new Uint8Array(await res.arrayBuffer()) };
+  } catch (e) {
+    console.warn("Modell-Cache nicht verfügbar, lade direkt", e);
+    return { modelAssetPath: url };
+  }
+}
 function setIntro(t, err) { const p = $("introStatus"); p.textContent = t; p.className = err ? "err" : ""; }
 
 // Ein Worker-Timer wird in Hintergrund-Tabs weniger stark gedrosselt als requestAnimationFrame.
@@ -322,6 +362,9 @@ function tick() {
   }
 
   const paused = manualPause || Date.now() < pausedUntil;
+  // Statistik: nur Zeit mit Gesicht im Bild und ohne Pause; Lücken (z. B. minimiertes Fenster) nicht mitzählen
+  if (lastFace && !paused && lastTickT) today().ms += Math.min(now - lastTickT, 1000);
+  lastTickT = now;
   let state = "ok", label = "Überwacht";
   let contact = false, near = false, atFace = false;   // atFace: Hand am Gesicht, unabhängig vom Tiefenfilter
   const tipsToDraw = [];
@@ -408,6 +451,7 @@ function onTouch() {
   const li = document.createElement("li");
   li.innerHTML = `<span>${fmtClock(t)}</span><span>nach ${fmtDur(t - prev)}</span>`;
   $("log").prepend(li); $("logEmpty").hidden = true;
+  today().n++; saveStats(); renderStats();
 
   beep();
   $("stage").classList.add("alarm"); $("flash").classList.add("on");
@@ -462,12 +506,69 @@ $("snoozeBtn").addEventListener("click", () => {
   pausedUntil = Date.now() + 2 * 60 * 1000;
 });
 
+// ---------- Statistik ----------
+// Pro Kalendertag: Berührungen (n) und überwachte Zeit (ms), nur im localStorage dieses Browsers
+const STATS_KEY = "haende-statistik-v1";
+const MIN_RATE_MS = 5 * 60 * 1000;   // darunter ist eine Rate pro Stunde zu zufällig
+let stats = {};
+try { stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch {}
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => stats[dayKey()] ||= { n: 0, ms: 0 };
+function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {} }
+const rate = d => d && d.ms >= MIN_RATE_MS ? d.n / (d.ms / 3600000) : null;
+const fmtRate = r => r == null ? "–" : r.toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " / h";
+const niceMax = v => { const p = 10 ** Math.floor(Math.log10(v)); return [1, 2, 5, 10].map(m => m * p).find(m => m >= v); };
+// Balken mit abgerundeter Oberkante, unten gerade auf der Grundlinie
+const barPath = (x, base, w, h) => { const r = Math.min(4, w / 2, h); return `M${x},${base}V${base - h + r}Q${x},${base - h} ${x + r},${base - h}H${x + w - r}Q${x + w},${base - h} ${x + w},${base - h + r}V${base}Z`; };
+
+let statRows = [];
+function renderStats() {
+  statRows = [];
+  for (let i = 13; i >= 0; i--) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i); const s = stats[dayKey(d)]; statRows.push({ d, s, r: rate(s) }); }
+  const prev = statRows.slice(6, 13).reduce((a, x) => x.s ? { n: a.n + x.s.n, ms: a.ms + x.s.ms } : a, { n: 0, ms: 0 });
+  $("rateToday").textContent = fmtRate(rate(stats[dayKey()]));
+  $("rateWeek").textContent = fmtRate(rate(prev));
+
+  const W = 288, H = 130, top = 14, bottom = 18, plotH = H - top - bottom, base = top + plotH;
+  const max = niceMax(Math.max(1, ...statRows.map(x => x.r || 0)));
+  const colW = W / statRows.length, barW = Math.min(14, colW - 4);
+  let svg = `<line class="grid" x1="0" x2="${W}" y1="${top}" y2="${top}"/><line class="grid" x1="0" x2="${W}" y1="${base}" y2="${base}"/>`;
+  statRows.forEach((x, i) => {
+    const cx = i * colW + colW / 2, h = x.r ? Math.max(2, x.r / max * plotH) : 0;
+    svg += `<g class="col" data-i="${i}" tabindex="0"><rect class="band" x="${i * colW}" y="0" width="${colW}" height="${H}" rx="4"/>` +
+      (h ? `<path class="bar" d="${barPath(cx - barW / 2, base, barW, h)}"/>` : "") +
+      `<text x="${cx}" y="${H - 4}" text-anchor="middle"${i === statRows.length - 1 ? ' class="today"' : ""}>${x.d.getDate()}</text></g>`;
+  });
+  $("chart").innerHTML = svg + `<text x="0" y="${top - 4}">${max} / h</text>`;   // zuletzt, damit die Hover-Fläche die Beschriftung nicht verdeckt
+  showDay(statRows.length - 1);
+}
+function showDay(i) {
+  const { d, s, r } = statRows[i];
+  $("chart").querySelectorAll(".col").forEach(c => c.classList.toggle("sel", +c.dataset.i === i));
+  const day = i === statRows.length - 1 ? "Heute" : d.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+  $("readout").textContent = !s || !s.ms ? `${day}: nicht überwacht`
+    : `${day}: ${s.n} Berührung${s.n === 1 ? "" : "en"} in ${fmtDur(s.ms)}` + (r == null ? " (zu kurz für eine Rate)" : ` → ${fmtRate(r)}`);
+}
+const colAt = e => e.target.closest?.(".col");
+$("chart").addEventListener("pointerover", e => { const c = colAt(e); if (c) showDay(+c.dataset.i); });
+$("chart").addEventListener("focusin", e => { const c = colAt(e); if (c) showDay(+c.dataset.i); });
+$("chart").addEventListener("pointerleave", () => showDay(statRows.length - 1));
+$("resetStats").addEventListener("click", () => {
+  if (!confirm("Statistik aller Tage löschen?")) return;
+  stats = {}; saveStats(); renderStats();
+});
+// Nur ein überwachender Tab schreibt – sonst überschreibt z. B. ein zweiter, untätiger Tab die Daten
+setInterval(() => { if (running) { saveStats(); renderStats(); } }, 15000);
+addEventListener("pagehide", () => { if (running) saveStats(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden && running) saveStats(); });
+
 // ---------- Anzeige ----------
 function fmtClock(t) { return new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
 function fmtDur(ms) {
   const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
   return h ? `${h}:${String(m).padStart(2, "0")} h` : m ? `${m}:${String(r).padStart(2, "0")} min` : `${r} s`;
 }
+renderStats();
 setInterval(() => {
   if (!running) return;
   const last = touches.length ? touches[touches.length - 1] : sessionStart;
