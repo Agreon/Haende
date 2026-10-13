@@ -29,7 +29,7 @@ Deployed as a Cloudflare Worker with static assets (custom domain `haende.agreon
 
 ## Conventions
 
-- UI text and code comments are **English** (locale `en-GB` for times/dates/numbers). Some internal identifiers are still German (e.g. sound keys like `rauchmelder`); in particular don't rename the `localStorage`/Cache Storage keys (`haende-statistik-v1`, `haende-modelle-v1`), or users lose saved statistics and cached models.
+- UI text and code comments are **English** (locale `en-GB` for times/dates/numbers). Some internal identifiers are still German (e.g. sound keys like `rauchmelder`); in particular don't rename the `localStorage`/Cache Storage keys (`haende-settings-v1`, `haende-statistik-v1`, `haende-modelle-v1`), or users lose saved settings, statistics and cached models.
 - Colors are CSS custom properties on `:root` with a `prefers-color-scheme: dark` override. The canvas overlay and status pill use hardcoded colors that mirror the dark-theme palette (the video area is always dark).
 - Code style is compact: short helpers, `$ = id => document.getElementById(id)`, sections marked with `// ---------- Name ----------` comments.
 
@@ -45,7 +45,7 @@ Each tick:
 5. **Drinking exemption**: at the mouth the cup is usually too occluded to detect, so the ObjectDetector (EfficientDet-Lite2, COCO `cup`/`bottle`/`wine glass`) runs on every 2nd tick whenever a hand is visible and looks for a drink overlapping a hand at roughly face height (`findDrink`). Once seen, the exemption is sticky: it is extended while a hand stays at the near zone (ignoring the depth filter) and expires `DRINK_HOLD_MS` after the hand leaves. The detector is optional — if it fails to load, `objDet` is `null` and everything else still works.
 6. **Debounce**: contact must persist for `dwell` ms before `onTouch()` fires once; a new touch only counts after the hand has been away for `RELEASE_MS`. Manual pause and the 2-minute snooze suppress counting but detection/drawing continue.
 
-Settings sliders are bound via `bindRange(id, fmt)` into the shared `S` object (`S.dwell`, `S.margin`, `S.depth`); each slider needs a matching `<output id="{id}Out">`. Video and canvas are mirrored with CSS `scaleX(-1)`, so drawing uses raw (unmirrored) landmark pixel coordinates.
+All settings controls are listed in one array at the top of the Settings section, restored from `localStorage` (`haende-settings-v1`) before anything reads them and saved on `change`; a new setting must be added to that array to persist. Settings sliders are bound via `bindRange(id, fmt)` into the shared `S` object (`S.dwell`, `S.margin`, `S.depth`); each slider needs a matching `<output id="{id}Out">`. Video and canvas are mirrored with CSS `scaleX(-1)`, so drawing uses raw (unmirrored) landmark pixel coordinates.
 
 ## Statistics
 

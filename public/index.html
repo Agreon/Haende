@@ -235,6 +235,20 @@ const sessionStart = Date.now();
 let longest = 0;
 
 // ---------- Settings ----------
+// Restored before anything reads them, saved on every change – only in this browser's localStorage
+const SETTINGS_KEY = "haende-settings-v1";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch {}
+["dwell", "margin", "depth", "sound", "drink", "preview", "guides"].forEach(id => {
+  const el = $(id), prop = el.type === "checkbox" ? "checked" : "value";
+  // a removed sound option would otherwise leave the select empty and silent
+  if (id in saved && (el.tagName !== "SELECT" || [...el.options].some(o => o.value === saved[id]))) el[prop] = saved[id];
+  el.addEventListener("change", () => {
+    saved[id] = el[prop];
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved)); } catch {}
+  });
+});
+
 const S = {};
 function bindRange(id, fmt) {
   const el = $(id), out = $(id + "Out");
@@ -244,7 +258,8 @@ function bindRange(id, fmt) {
 bindRange("dwell", v => v + " ms");
 bindRange("margin", v => "+" + v + " %");
 bindRange("depth", v => v.toFixed(1) + "×");
-$("preview").addEventListener("change", e => video.classList.toggle("dim", !e.target.checked));
+const applyPreview = () => video.classList.toggle("dim", !$("preview").checked);
+$("preview").addEventListener("change", applyPreview); applyPreview();
 
 // ---------- Start ----------
 $("startBtn").addEventListener("click", async () => {
