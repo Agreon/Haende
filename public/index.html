@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hände weg</title>
+<title>Hands off</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: Kamerabild links als Arbeitsfläche, schmale Instrumentenleiste rechts; auf dem Handy untereinander. */
+/* Layout: camera image on the left as the main area, narrow instrument column on the right; stacked on phones. */
 :root {
   --bg: #f3f5f4;
   --panel: #ffffff;
@@ -123,8 +123,8 @@ ol.log li span:last-child { color: var(--muted); }
 <div class="wrap">
   <header>
     <div>
-      <h1>Hände weg</h1>
-      <p class="sub">Warnt dich, sobald deine Finger dein Gesicht berühren. Alles läuft lokal im Browser.</p>
+      <h1>Hands off</h1>
+      <p class="sub">Warns you as soon as your fingers touch your face. Everything runs locally in your browser.</p>
     </div>
   </header>
 
@@ -133,85 +133,85 @@ ol.log li span:last-child { color: var(--muted); }
       <video id="video" playsinline muted></video>
       <canvas id="canvas"></canvas>
       <div class="flash" id="flash"></div>
-      <div class="pill" id="pill" data-s="idle"><i></i><span id="pillText">Bereit</span></div>
+      <div class="pill" id="pill" data-s="idle"><i></i><span id="pillText">Ready</span></div>
       <div class="overlay-msg" id="intro">
-        <p>Die Kamera wird nur in diesem Tab ausgewertet. Es werden keine Bilder gespeichert oder verschickt.</p>
-        <button class="primary" id="startBtn">Kamera starten</button>
+        <p>The camera is only analyzed in this tab. No images are stored or sent anywhere.</p>
+        <button class="primary" id="startBtn">Start camera</button>
         <p id="introStatus"></p>
       </div>
     </div>
 
     <aside>
       <div class="card">
-        <p class="label">Berührungen in dieser Sitzung</p>
+        <p class="label">Touches this session</p>
         <div class="big" id="count">0</div>
         <div class="stats">
-          <div class="stat"><p class="label">Seit letzter</p><div class="v" id="since">–</div></div>
-          <div class="stat"><p class="label">Längste Pause</p><div class="v" id="streak">–</div></div>
+          <div class="stat"><p class="label">Since last</p><div class="v" id="since">–</div></div>
+          <div class="stat"><p class="label">Longest break</p><div class="v" id="streak">–</div></div>
         </div>
         <div class="row">
-          <button id="pauseBtn" disabled>Pausieren</button>
-          <button id="snoozeBtn" disabled title="Zum Essen oder Trinken">2 Min. aussetzen</button>
+          <button id="pauseBtn" disabled>Pause</button>
+          <button id="snoozeBtn" disabled title="For eating or drinking">Snooze 2 min</button>
         </div>
       </div>
 
       <div class="card">
-        <p class="label">Berührungen pro Stunde</p>
+        <p class="label">Touches per hour</p>
         <div class="stats">
-          <div class="stat"><p class="label">Heute</p><div class="v" id="rateToday">–</div></div>
-          <div class="stat"><p class="label">Ø 7 Tage davor</p><div class="v" id="rateWeek">–</div></div>
+          <div class="stat"><p class="label">Today</p><div class="v" id="rateToday">–</div></div>
+          <div class="stat"><p class="label">Ø previous 7 days</p><div class="v" id="rateWeek">–</div></div>
         </div>
-        <svg class="chart" id="chart" viewBox="0 0 288 130" role="img" aria-label="Berührungen pro Stunde in den letzten 14 Tagen"></svg>
+        <svg class="chart" id="chart" viewBox="0 0 288 130" role="img" aria-label="Touches per hour over the last 14 days"></svg>
         <p class="readout" id="readout"></p>
-        <small>Gezählt wird nur die Zeit, in der dein Gesicht überwacht wird (ohne Pausen). Die Daten bleiben in diesem Browser.</small>
-        <button class="linkbtn" id="resetStats" type="button">Statistik löschen</button>
+        <small>Only time while your face is being monitored counts (pauses excluded). The data stays in this browser.</small>
+        <button class="linkbtn" id="resetStats" type="button">Clear statistics</button>
       </div>
 
       <div class="card">
-        <p class="label">Einstellungen</p>
+        <p class="label">Settings</p>
         <div class="ctl">
-          <div class="ctl-head"><label for="dwell">Reaktionszeit</label><output id="dwellOut"></output></div>
+          <div class="ctl-head"><label for="dwell">Reaction time</label><output id="dwellOut"></output></div>
           <input type="range" id="dwell" min="0" max="1000" step="50" value="250">
-          <small>Wie lange ein Finger am Gesicht sein muss, bis es piept.</small>
+          <small>How long a finger has to stay on your face before the alarm goes off.</small>
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="margin">Gesichtsbereich</label><output id="marginOut"></output></div>
+          <div class="ctl-head"><label for="margin">Face area</label><output id="marginOut"></output></div>
           <input type="range" id="margin" min="0" max="30" step="1" value="8">
-          <small>Vergrößert die erkannte Gesichtsfläche, z. B. um Haare und Ohren einzuschließen.</small>
+          <small>Enlarges the detected face area, e.g. to include hair and ears.</small>
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="depth">Tiefenfilter</label><output id="depthOut"></output></div>
+          <div class="ctl-head"><label for="depth">Depth filter</label><output id="depthOut"></output></div>
           <input type="range" id="depth" min="1.0" max="3.0" step="0.1" value="1.8">
-          <small>Ignoriert Hände, die deutlich näher an der Kamera sind als dein Gesicht (Hand vor dem Gesicht statt am Gesicht). Kleiner = strenger.</small>
+          <small>Ignores hands that are clearly closer to the camera than your face (hand in front of the face rather than on it). Lower = stricter.</small>
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="sound">Warnton</label></div>
+          <div class="ctl-head"><label for="sound">Alarm sound</label></div>
           <div class="row">
             <select id="sound">
-              <option value="rauchmelder">Rauchmelder</option>
-              <option value="sirene">Sirene</option>
-              <option value="wecker">Wecker</option>
+              <option value="rauchmelder">Smoke alarm</option>
+              <option value="sirene">Siren</option>
+              <option value="wecker">Alarm clock</option>
               <option value="buzzer">Buzzer</option>
-              <option value="sanft">Sanfter Gong</option>
-              <option value="aus">Aus</option>
+              <option value="sanft">Gentle chime</option>
+              <option value="aus">Off</option>
             </select>
-            <button id="testBtn" type="button">Testen</button>
+            <button id="testBtn" type="button">Test</button>
           </div>
         </div>
-        <label class="check"><input type="checkbox" id="drink" checked> Trinken erlauben</label>
-        <label class="check"><input type="checkbox" id="preview" checked> Kamerabild zeigen</label>
-        <label class="check"><input type="checkbox" id="guides" checked> Erkennung einblenden</label>
+        <label class="check"><input type="checkbox" id="drink" checked> Allow drinking</label>
+        <label class="check"><input type="checkbox" id="preview" checked> Show camera image</label>
+        <label class="check"><input type="checkbox" id="guides" checked> Show detection overlay</label>
       </div>
 
       <div class="card">
-        <p class="label">Verlauf</p>
+        <p class="label">History</p>
         <ol class="log" id="log"></ol>
-        <p class="empty" id="logEmpty">Noch keine Berührung erkannt.</p>
+        <p class="empty" id="logEmpty">No touches detected yet.</p>
       </div>
     </aside>
   </div>
 
-  <p class="note">Tipp: Lass den Tab im Hintergrund offen. Die Überwachung läuft weiter, solange das Browserfenster nicht minimiert ist. Wenn der Alarm fälschlich auslöst, während du die Hand nur vor das Gesicht hältst, stell den Tiefenfilter strenger ein. Trinken aus Becher, Tasse, Glas oder Flasche wird erkannt und nicht gezählt.</p>
+  <p class="note">Tip: Keep the tab open in the background. Monitoring continues as long as the browser window isn’t minimized. If the alarm goes off while you’re only holding your hand in front of your face, make the depth filter stricter. Drinking from a cup, mug, glass or bottle is recognized and not counted.</p>
 </div>
 
 <script type="module">
@@ -221,9 +221,9 @@ const $ = id => document.getElementById(id);
 const video = $("video"), canvas = $("canvas"), ctx = canvas.getContext("2d");
 const FPS = 12;
 const FINGERTIPS = [4, 8, 12, 16, 20];
-const FACE_MEMORY_MS = 1500;   // Gesicht weiterverwenden, wenn die Hand es verdeckt
-const RELEASE_MS = 600;        // so lange muss die Hand weg sein, bis eine neue Berührung zählt
-const DRINK_HOLD_MS = 1500;    // Nachlauf der Trink-Ausnahme, nachdem die Hand das Gesicht verlassen hat
+const FACE_MEMORY_MS = 1500;   // keep using the face while the hand covers it
+const RELEASE_MS = 600;        // how long the hand must be away before a new touch counts
+const DRINK_HOLD_MS = 1500;    // drinking exemption lingers this long after the hand leaves the face
 const DRINK_CLASSES = ["cup", "bottle", "wine glass"];
 
 let handLm, faceLm, objDet, audioCtx;
@@ -234,7 +234,7 @@ const touches = [];
 const sessionStart = Date.now();
 let longest = 0;
 
-// ---------- Einstellungen ----------
+// ---------- Settings ----------
 const S = {};
 function bindRange(id, fmt) {
   const el = $(id), out = $(id + "Out");
@@ -251,28 +251,28 @@ $("startBtn").addEventListener("click", async () => {
   $("startBtn").disabled = true;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   try {
-    setIntro("Kamera wird geöffnet …");
+    setIntro("Opening camera …");
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false });
     video.srcObject = stream;
     await video.play();
   } catch (e) {
-    setIntro("Kein Kamerazugriff. Erlaube die Kamera in den Browser-Einstellungen und lade die Seite neu.", true);
+    setIntro("No camera access. Allow the camera in your browser settings and reload the page.", true);
     $("startBtn").disabled = false; return;
   }
   try {
-    setIntro("Erkennungsmodelle werden geladen (beim ersten Mal ca. 22 MB) …");
+    setIntro("Loading detection models (about 22 MB the first time) …");
     const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm");
     const base = { delegate: "GPU" };
     [handLm, faceLm, objDet] = await Promise.all([
       model("https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task").then(m => HandLandmarker.createFromOptions(files, { baseOptions: { ...base, ...m }, runningMode: "VIDEO", numHands: 2, minHandDetectionConfidence: 0.4, minHandPresenceConfidence: 0.4, minTrackingConfidence: 0.4 })),
       model("https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task").then(m => FaceLandmarker.createFromOptions(files, { baseOptions: { ...base, ...m }, runningMode: "VIDEO", numFaces: 1 })),
-      // Optional: ohne Objekterkennung läuft alles weiter, nur Trinken wird dann nicht erkannt
+      // Optional: without object detection everything still works, drinking just isn't recognized
       model("https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite2/float16/1/efficientdet_lite2.tflite").then(m => ObjectDetector.createFromOptions(files, { baseOptions: { ...base, ...m }, runningMode: "VIDEO", scoreThreshold: 0.2, maxResults: 5, categoryAllowlist: DRINK_CLASSES }))
-        .catch(e => { console.warn("Objekterkennung nicht verfügbar", e); return null; })
+        .catch(e => { console.warn("Object detection unavailable", e); return null; })
     ]);
   } catch (e) {
     console.error(e);
-    setIntro("Die Modelle konnten nicht geladen werden. Prüfe deine Internetverbindung und lade die Seite neu.", true);
+    setIntro("The models could not be loaded. Check your internet connection and reload the page.", true);
     return;
   }
   $("intro").hidden = true;
@@ -280,7 +280,7 @@ $("startBtn").addEventListener("click", async () => {
   running = true;
   startTicker();
 });
-// Die Modell-Server erlauben nur 1 h HTTP-Cache, deshalb dauerhaft in der Cache Storage des Browsers ablegen
+// The model servers only allow a 1 h HTTP cache, so keep the models permanently in the browser's Cache Storage
 const MODEL_CACHE = "haende-modelle-v1";
 async function model(url) {
   try {
@@ -293,13 +293,13 @@ async function model(url) {
     }
     return { modelAssetBuffer: new Uint8Array(await res.arrayBuffer()) };
   } catch (e) {
-    console.warn("Modell-Cache nicht verfügbar, lade direkt", e);
+    console.warn("Model cache unavailable, loading directly", e);
     return { modelAssetPath: url };
   }
 }
 function setIntro(t, err) { const p = $("introStatus"); p.textContent = t; p.className = err ? "err" : ""; }
 
-// Ein Worker-Timer wird in Hintergrund-Tabs weniger stark gedrosselt als requestAnimationFrame.
+// A worker timer is throttled less in background tabs than requestAnimationFrame.
 function startTicker() {
   const src = `setInterval(() => postMessage(0), ${Math.round(1000 / FPS)});`;
   const w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
@@ -307,7 +307,7 @@ function startTicker() {
   w.onmessage = () => { if (busy) return; busy = true; try { tick(); } finally { busy = false; } };
 }
 
-// ---------- Geometrie ----------
+// ---------- Geometry ----------
 function convexHull(pts) {
   const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
@@ -330,18 +330,18 @@ function inside([x, y], poly) {
 }
 const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 const bbox = pts => { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
-// Getränk in einer Hand auf Gesichtshöhe – nicht z. B. der Becher auf dem Tisch neben der Maus
+// A drink in a hand at face height – not e.g. the mug on the desk next to the mouse
 function findDrink(res, hands, face) {
   let maxY = Infinity;
   if (face) { const [, y0, , y1] = bbox(face.hull); maxY = y1 + 0.75 * (y1 - y0); }
   const d = (res.detections || []).find(({ boundingBox: b }) => b.originY + b.height / 2 < maxY && hands.some(p => {
-    const [x0, y0, x1, y1] = bbox(p), m = 0.25 * Math.max(x1 - x0, y1 - y0);   // Hand umschließt das Gefäß
+    const [x0, y0, x1, y1] = bbox(p), m = 0.25 * Math.max(x1 - x0, y1 - y0);   // the hand wraps around the container
     return b.originX < x1 + m && b.originX + b.width > x0 - m && b.originY < y1 + m && b.originY + b.height > y0 - m;
   }));
   return d ? d.boundingBox : null;
 }
 
-// ---------- Hauptschleife ----------
+// ---------- Main loop ----------
 function tick() {
   if (!running || video.readyState < 2) return;
   const W = video.videoWidth, H = video.videoHeight;
@@ -362,19 +362,19 @@ function tick() {
   }
 
   const paused = manualPause || Date.now() < pausedUntil;
-  // Statistik: nur Zeit mit Gesicht im Bild und ohne Pause; Lücken (z. B. minimiertes Fenster) nicht mitzählen
+  // Statistics: only time with a face in view and not paused; don't count gaps (e.g. minimized window)
   if (lastFace && !paused && lastTickT) today().ms += Math.min(now - lastTickT, 1000);
   lastTickT = now;
-  let state = "ok", label = "Überwacht";
-  let contact = false, near = false, atFace = false;   // atFace: Hand am Gesicht, unabhängig vom Tiefenfilter
+  let state = "ok", label = "Monitoring";
+  let contact = false, near = false, atFace = false;   // atFace: hand at the face, regardless of the depth filter
   const tipsToDraw = [];
 
-  if (!lastFace) { state = "idle"; label = "Kein Gesicht im Bild"; }
+  if (!lastFace) { state = "idle"; label = "No face in view"; }
   else {
     const zone = scalePoly(lastFace.hull, 1 + S.margin / 100);
     const nearZone = scalePoly(lastFace.hull, 1.35 + S.margin / 100);
     handPts.forEach(p => {
-      const ratio = dist(p[0], p[9]) / lastFace.eye;   // Handgröße relativ zum Augenabstand
+      const ratio = dist(p[0], p[9]) / lastFace.eye;   // hand size relative to eye distance
       const inFront = ratio > S.depth;
       FINGERTIPS.forEach(i => {
         const tip = p[i];
@@ -385,21 +385,21 @@ function tick() {
         tipsToDraw.push({ tip, hit, close, inFront });
       });
     });
-    if (!lastFace.live) label = "Gesicht verdeckt";
-    if (near) { state = "near"; label = "Hand in der Nähe"; }
-    if (contact) { state = "touch"; label = "Berührung"; }
+    if (!lastFace.live) label = "Face covered";
+    if (near) { state = "near"; label = "Hand nearby"; }
+    if (contact) { state = "touch"; label = "Touch"; }
   }
-  // Trinken: Am Mund verdecken Hand und Gesicht das Gefäß oft so stark, dass es nicht mehr erkannt wird.
-  // Deshalb wird schon beim Anheben gesucht (jeder 2. Frame), und die Ausnahme hält an, solange die Hand am Gesicht bleibt.
+  // Drinking: at the mouth, hand and face often hide the container so much that it's no longer detected.
+  // So we already look for it while it's being lifted (every 2nd frame), and the exemption lasts as long as the hand stays at the face.
   if (drinkOn && objDet && handPts.length && ++objTick % 2 === 0) {
     const box = findDrink(objDet.detectForVideo(video, now), handPts, lastFace);
     if (box) { drinkUntil = now + DRINK_HOLD_MS; drinkBox = box; drinkSeen = now; }
   }
   if (now < drinkUntil && handPts.length && (atFace || !lastFace)) drinkUntil = now + DRINK_HOLD_MS;
   const drinking = drinkOn && now < drinkUntil;
-  if (drinking) { contact = false; if (lastFace) { state = "drink"; label = "Trinken"; } }
+  if (drinking) { contact = false; if (lastFace) { state = "drink"; label = "Drinking"; } }
 
-  // Entprellen: erst nach S.dwell ms Kontakt zählt es, danach erst wieder nach Loslassen
+  // Debounce: contact counts only after S.dwell ms, and again only after letting go
   if (contact && !paused) {
     if (!touchStart) touchStart = now;
     if (!touching && now - touchStart >= S.dwell) { touching = true; onTouch(); }
@@ -409,7 +409,7 @@ function tick() {
     if (touching) { if (!lastClear) lastClear = now; if (now - lastClear > RELEASE_MS) { touching = false; lastClear = 0; } }
   }
 
-  if (paused) { state = "paused"; label = manualPause ? "Pausiert" : "Ausgesetzt bis " + fmtClock(pausedUntil); }
+  if (paused) { state = "paused"; label = manualPause ? "Paused" : "Snoozed until " + fmtClock(pausedUntil); }
   setPill(state, label);
   draw(lastFace, tipsToDraw, drinking, now - drinkSeen < 400 ? drinkBox : null);
 }
@@ -449,7 +449,7 @@ function onTouch() {
   touches.push(t);
   $("count").textContent = touches.length;
   const li = document.createElement("li");
-  li.innerHTML = `<span>${fmtClock(t)}</span><span>nach ${fmtDur(t - prev)}</span>`;
+  li.innerHTML = `<span>${fmtClock(t)}</span><span>after ${fmtDur(t - prev)}</span>`;
   $("log").prepend(li); $("logEmpty").hidden = true;
   today().n++; saveStats(); renderStats();
 
@@ -458,10 +458,10 @@ function onTouch() {
   requestAnimationFrame(() => setTimeout(() => $("flash").classList.remove("on"), 60));
   setTimeout(() => $("stage").classList.remove("alarm"), 900);
   clearTimeout(titleTimer);
-  document.title = "● Hände weg!";
-  titleTimer = setTimeout(() => document.title = "Hände weg", 3000);
+  document.title = "● Hands off!";
+  titleTimer = setTimeout(() => document.title = "Hands off", 3000);
 }
-// Ein Ton mit kurzer Hüllkurve, damit es nicht knackt
+// A tone with a short envelope so it doesn't click
 function tone(out, type, f, t, d, vol = 1) {
   const o = audioCtx.createOscillator(), g = audioCtx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t);
@@ -474,14 +474,14 @@ function tone(out, type, f, t, d, vol = 1) {
   return o;
 }
 const SOUNDS = {
-  // Rechteckwelle, schnell zwischen zwei Tönen im empfindlichsten Hörbereich (2–3 kHz) wechselnd
+  // Square wave, rapidly alternating between two tones in the ear's most sensitive range (2–3 kHz)
   rauchmelder: (out, t) => { for (let i = 0; i < 8; i++) tone(out, "square", i % 2 ? 1900 : 2600, t + i * 0.09, 0.09); },
   sirene: (out, t) => {
     const o = tone(out, "sawtooth", 600, t, 1.2);
     for (let i = 0; i < 3; i++) { o.frequency.linearRampToValueAtTime(1500, t + i * 0.4 + 0.2); o.frequency.linearRampToValueAtTime(600, t + i * 0.4 + 0.4); }
   },
   wecker: (out, t) => { for (let b = 0; b < 2; b++) for (let i = 0; i < 4; i++) tone(out, "square", 1000, t + b * 0.5 + i * 0.1, 0.06); },
-  // zwei leicht verstimmte tiefe Töne schweben gegeneinander – wie bei einer falschen Quizantwort
+  // two slightly detuned low tones beat against each other – like a wrong answer on a quiz show
   buzzer: (out, t) => { tone(out, "sawtooth", 140, t, 0.7, 0.6); tone(out, "square", 147, t, 0.7, 0.5); },
   sanft: (out, t) => [880, 660].forEach((f, i) => tone(out, "sine", f, t + i * 0.16, 0.16, 0.35)),
 };
@@ -496,29 +496,29 @@ function beep() {
 $("sound").addEventListener("change", beep);
 $("testBtn").addEventListener("click", beep);
 
-// ---------- Steuerung ----------
+// ---------- Controls ----------
 $("pauseBtn").addEventListener("click", () => {
   manualPause = !manualPause; pausedUntil = 0;
-  $("pauseBtn").textContent = manualPause ? "Fortsetzen" : "Pausieren";
+  $("pauseBtn").textContent = manualPause ? "Resume" : "Pause";
 });
 $("snoozeBtn").addEventListener("click", () => {
-  manualPause = false; $("pauseBtn").textContent = "Pausieren";
+  manualPause = false; $("pauseBtn").textContent = "Pause";
   pausedUntil = Date.now() + 2 * 60 * 1000;
 });
 
-// ---------- Statistik ----------
-// Pro Kalendertag: Berührungen (n) und überwachte Zeit (ms), nur im localStorage dieses Browsers
+// ---------- Statistics ----------
+// Per calendar day: touches (n) and monitored time (ms), only in this browser's localStorage
 const STATS_KEY = "haende-statistik-v1";
-const MIN_RATE_MS = 5 * 60 * 1000;   // darunter ist eine Rate pro Stunde zu zufällig
+const MIN_RATE_MS = 5 * 60 * 1000;   // below this, a per-hour rate is too random
 let stats = {};
 try { stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch {}
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const today = () => stats[dayKey()] ||= { n: 0, ms: 0 };
 function saveStats() { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {} }
 const rate = d => d && d.ms >= MIN_RATE_MS ? d.n / (d.ms / 3600000) : null;
-const fmtRate = r => r == null ? "–" : r.toLocaleString("de-DE", { maximumFractionDigits: 1 }) + " / h";
+const fmtRate = r => r == null ? "–" : r.toLocaleString("en-GB", { maximumFractionDigits: 1 }) + " / h";
 const niceMax = v => { const p = 10 ** Math.floor(Math.log10(v)); return [1, 2, 5, 10].map(m => m * p).find(m => m >= v); };
-// Balken mit abgerundeter Oberkante, unten gerade auf der Grundlinie
+// Bar with a rounded top, flat on the baseline
 const barPath = (x, base, w, h) => { const r = Math.min(4, w / 2, h); return `M${x},${base}V${base - h + r}Q${x},${base - h} ${x + r},${base - h}H${x + w - r}Q${x + w},${base - h} ${x + w},${base - h + r}V${base}Z`; };
 
 let statRows = [];
@@ -539,31 +539,31 @@ function renderStats() {
       (h ? `<path class="bar" d="${barPath(cx - barW / 2, base, barW, h)}"/>` : "") +
       `<text x="${cx}" y="${H - 4}" text-anchor="middle"${i === statRows.length - 1 ? ' class="today"' : ""}>${x.d.getDate()}</text></g>`;
   });
-  $("chart").innerHTML = svg + `<text x="0" y="${top - 4}">${max} / h</text>`;   // zuletzt, damit die Hover-Fläche die Beschriftung nicht verdeckt
+  $("chart").innerHTML = svg + `<text x="0" y="${top - 4}">${max} / h</text>`;   // last, so the hover band doesn't cover the label
   showDay(statRows.length - 1);
 }
 function showDay(i) {
   const { d, s, r } = statRows[i];
   $("chart").querySelectorAll(".col").forEach(c => c.classList.toggle("sel", +c.dataset.i === i));
-  const day = i === statRows.length - 1 ? "Heute" : d.toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
-  $("readout").textContent = !s || !s.ms ? `${day}: nicht überwacht`
-    : `${day}: ${s.n} Berührung${s.n === 1 ? "" : "en"} in ${fmtDur(s.ms)}` + (r == null ? " (zu kurz für eine Rate)" : ` → ${fmtRate(r)}`);
+  const day = i === statRows.length - 1 ? "Today" : d.toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "2-digit" });
+  $("readout").textContent = !s || !s.ms ? `${day}: not monitored`
+    : `${day}: ${s.n} touch${s.n === 1 ? "" : "es"} in ${fmtDur(s.ms)}` + (r == null ? " (too short for a rate)" : ` → ${fmtRate(r)}`);
 }
 const colAt = e => e.target.closest?.(".col");
 $("chart").addEventListener("pointerover", e => { const c = colAt(e); if (c) showDay(+c.dataset.i); });
 $("chart").addEventListener("focusin", e => { const c = colAt(e); if (c) showDay(+c.dataset.i); });
 $("chart").addEventListener("pointerleave", () => showDay(statRows.length - 1));
 $("resetStats").addEventListener("click", () => {
-  if (!confirm("Statistik aller Tage löschen?")) return;
+  if (!confirm("Clear statistics for all days?")) return;
   stats = {}; saveStats(); renderStats();
 });
-// Nur ein überwachender Tab schreibt – sonst überschreibt z. B. ein zweiter, untätiger Tab die Daten
+// Only a monitoring tab writes – otherwise e.g. a second, idle tab would overwrite the data
 setInterval(() => { if (running) { saveStats(); renderStats(); } }, 15000);
 addEventListener("pagehide", () => { if (running) saveStats(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden && running) saveStats(); });
 
-// ---------- Anzeige ----------
-function fmtClock(t) { return new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+// ---------- Display ----------
+function fmtClock(t) { return new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
 function fmtDur(ms) {
   const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), r = s % 60;
   return h ? `${h}:${String(m).padStart(2, "0")} h` : m ? `${m}:${String(r).padStart(2, "0")} min` : `${r} s`;

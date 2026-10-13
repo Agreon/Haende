@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-"Hände weg" is a single self-contained web page (`public/index.html`) that watches the webcam and alerts the user when their fingers touch their face. Everything runs client-side in the browser; no images are stored or sent anywhere — keep it that way.
+"Hands off" (repo name: Haende) is a single self-contained web page (`public/index.html`) that watches the webcam and alerts the user when their fingers touch their face. Everything runs client-side in the browser; no images are stored or sent anywhere — keep it that way.
 
 There is no build step, package manager, linter, or test suite. HTML, CSS, and an inline `<script type="module">` all live in the one file. The only external dependencies are loaded at runtime:
 - `@mediapipe/tasks-vision@0.10.21` (JS bundle + WASM) from jsDelivr
@@ -21,7 +21,7 @@ Camera access requires a secure context, so serve the file from localhost rather
 python3 -m http.server 8000 -d public
 ```
 
-Then open `http://localhost:8000/` and click "Kamera starten". Verification is manual (touch your face, hold a hand in front of it, cover the face, etc.).
+Then open `http://localhost:8000/` and click "Start camera". Verification is manual (touch your face, hold a hand in front of it, cover the face, etc.).
 
 ## Deployment
 
@@ -29,7 +29,7 @@ Deployed as a Cloudflare Worker with static assets (custom domain `haende.agreon
 
 ## Conventions
 
-- All UI text and code comments are in **German**; keep new strings and comments German.
+- UI text and code comments are **English** (locale `en-GB` for times/dates/numbers). Some internal identifiers are still German (e.g. sound keys like `rauchmelder`); in particular don't rename the `localStorage`/Cache Storage keys (`haende-statistik-v1`, `haende-modelle-v1`), or users lose saved statistics and cached models.
 - Colors are CSS custom properties on `:root` with a `prefers-color-scheme: dark` override. The canvas overlay and status pill use hardcoded colors that mirror the dark-theme palette (the video area is always dark).
 - Code style is compact: short helpers, `$ = id => document.getElementById(id)`, sections marked with `// ---------- Name ----------` comments.
 
@@ -38,7 +38,7 @@ Deployed as a Cloudflare Worker with static assets (custom domain `haende.agreon
 The core loop (`tick()`) runs at `FPS = 12`, driven by a **Web Worker timer** (created from a Blob URL in `startTicker()`) instead of `requestAnimationFrame`, because worker timers are throttled less in background tabs — the app is meant to run in a background tab. A `busy` flag drops ticks if one is still running.
 
 Each tick:
-1. **Face zone**: FaceLandmarker landmarks → convex hull (`convexHull`). The last face is remembered for `FACE_MEMORY_MS` because a hand covering the face often makes face detection fail exactly when a touch happens (`live: false` → dashed outline, "Gesicht verdeckt").
+1. **Face zone**: FaceLandmarker landmarks → convex hull (`convexHull`). The last face is remembered for `FACE_MEMORY_MS` because a hand covering the face often makes face detection fail exactly when a touch happens (`live: false` → dashed outline, "Face covered").
 2. **Zones**: the hull is scaled around its centroid (`scalePoly`) — `1 + margin%` for contact, `1.35 + margin%` for the "near" warning.
 3. **Depth filter**: there is no real depth, so a hand counts as "in front of the face" (and is ignored) when its size (wrist→middle-finger MCP, landmarks 0→9) divided by the eye distance (face landmarks 33→263) exceeds the `depth` slider value.
 4. **Hit test**: the five fingertips (`FINGERTIPS`) are point-in-polygon tested (`inside`) against the zones.
